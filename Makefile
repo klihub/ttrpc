@@ -57,6 +57,13 @@ TESTFLAGS_PARALLEL ?= 8
 # Use this to replace `go test` with, for instance, `gotestsum`
 GOTEST ?= $(GO) test
 
+# protoc options for recompiling ttrpc proto files (request.proto) without protobuild.
+PROTOC_INCLUDE = -I$(PWD)
+PROTOC_OPTIONS = --proto_path=. $(PROTOC_INCLUDE) \
+    --go_opt=paths=source_relative --go_out=.
+PROTOC_COMPILE = protoc $(PROTOC_OPTIONS)
+PROTOC_TARGETS = request.pb.go internal/test.pb.go
+
 .PHONY: clean all AUTHORS build binaries test integration generate protos check-protos coverage ci check help install vendor install-protobuf install-protobuild
 .DEFAULT: default
 
@@ -87,6 +94,8 @@ check-protos: protos ## check if protobufs needs to be generated again
 	@test -z "$$(git status --short | grep ".pb.go" | tee /dev/stderr)" || \
 		((git diff | cat) && \
 		(echo "$(ONI) please run 'make protos' when making changes to proto files" && false))
+
+rebuild-protos: $(PROTOC_TARGETS)
 
 check-api-descriptors: protos ## check that protobuf changes aren't present.
 	@echo "$(WHALE) $@"
@@ -130,6 +139,11 @@ bin/%: cmd/% FORCE
 
 binaries: $(BINARIES) ## build binaries
 	@echo "$(WHALE) $@"
+
+# Build go code from a protobuf definition.
+%.pb.go: %.proto
+	@echo "$(WHALE) $@ (from $<)"
+	@$(PROTOC_COMPILE) $<
 
 clean: ## clean up binaries
 	@echo "$(WHALE) $@"
