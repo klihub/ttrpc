@@ -1,5 +1,7 @@
 syntax = "proto3";
 
+option go_package = "google.golang.org/genproto/googleapis/rpc/status";
+
 message Status {
 	int32 code = 1;
 }

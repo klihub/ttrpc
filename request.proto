@@ -19,10 +19,6 @@ message Response {
 	bytes payload = 2;
 }
 
-message StringList {
-	repeated string list = 1;
-}
-
 message KeyValue {
 	string key = 1;
 	string value = 2;
