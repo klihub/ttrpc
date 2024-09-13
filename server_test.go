@@ -298,6 +298,37 @@ func TestServerClose(t *testing.T) {
 	checkServerShutdown(t, server)
 }
 
+func TestImmediateServerShutdown(t *testing.T) {
+	for i := 0; i < 1024; i++ {
+		var (
+			ctx            = context.Background()
+			server         = mustServer(t)(NewServer())
+			addr, listener = newTestListener(t)
+			errs           = make(chan error, 1)
+			_, cleanup     = newTestClient(t, addr)
+		)
+		defer cleanup()
+		defer listener.Close()
+		go func() {
+			errs <- server.Serve(ctx, listener)
+		}()
+
+		registerTestingService(server, &testingServer{})
+
+		if err := server.Shutdown(ctx); err != nil {
+			t.Fatal(err)
+		}
+		select {
+		case err := <-errs:
+			if err != ErrServerClosed {
+				t.Fatal(err)
+			}
+		case <-time.After(time.Second):
+			t.Fatal("retreiving error from server.Shutdown() timed out")
+		}
+	}
+}
+
 func TestOversizeCall(t *testing.T) {
 	var (
 		ctx             = context.Background()
